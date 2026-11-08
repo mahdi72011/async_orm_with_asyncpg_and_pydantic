@@ -8,7 +8,7 @@ class DBCondition:
         self.operator = operator
         self.condition = ""
         self.number = starting_index
-        self.const = list(const) if isinstance(const, (list, tuple)) else [const]
+        self.const = (tuple(const),) if isinstance(const, (list, tuple)) else (const,)
 
     def build_condition(self):
         self.condition = self.term + self.operator + f"(${self.number}) "
@@ -39,12 +39,12 @@ class DBAssignment:
             self.value_list.append(key_val[1])
         return self.update_list, self.value_list
 
+
+
+
 # assign = DBAssignment({"username":"mahdi", "password":"7201172011"})
 # assign = assign.build_assignment()
 # print(assign)
-
-
-
 
 
 # cd1 = DBUpdate(term='password',operator='=',const='mahdi')

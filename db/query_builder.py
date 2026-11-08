@@ -35,7 +35,7 @@ class QueryBuilder:
         return await Connection.execute_batch_query(query, [tuple(data_model.model_dump().values()) for data_model in data_models])
     
 
-    async def select(self, column: List='*', condition: str=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, condition_constant: list=[]):
+    async def select(self, column: List='*', condition: str=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, condition_constant: list=[], mock: bool=False):
         query = "SELECT {columns} FROM {table} {condition} {group} {order} {asc_or_desc} {limit} {offset}".\
         format(columns=",".join(list(column)) if type(column) == list else "*",
                table=self.table_name,
@@ -45,6 +45,8 @@ class QueryBuilder:
                 asc_or_desc=asc_or_desc if asc_or_desc else "",
                 limit="LIMIT " + str(limit) if limit else "",
                 offset="OFFSET " + str(offset) if offset else "")
+        if mock:
+            return query
         return await Connection.fetch_all(query, *condition_constant)
 
 
