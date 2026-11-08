@@ -1,9 +1,9 @@
-from datetime import datetime
+from constants.sql_operator import SqlOperator
 
 
 
 class DBCondition:
-    def __init__(self, term: str=None, operator: str=None, const: object=None, starting_index: int=1):
+    def __init__(self, term: str=None, operator: SqlOperator=None, const: object=None, starting_index: int=1):
         self.term = term
         self.operator = operator
         self.condition = ""

@@ -1,8 +1,8 @@
+from enum import Enum
 
 
 
-
-class SqlOperator:
+class SqlOperator(Enum):
 
     EQL = "="
     GT = ">"
