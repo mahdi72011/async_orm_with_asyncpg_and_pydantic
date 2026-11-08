@@ -13,5 +13,5 @@ class SqlOperator:
     LIKE = " LIKE "
     ILIKE = " ILIKE "
     BETWEEN = " BETWEEN "
-    IN = " IN "
+    IN = " = ANY"
 
