@@ -10,7 +10,7 @@ from constants.sql_operator import SqlOperator
 
 sql_factory = QueryBuilder("users")
 
-condition = DBCondition(term="user_id", operator=SqlOperator.IN, const=[111,112])
+condition = DBCondition(term="user_id", operator=SqlOperator.NOTIN, const=[111,112])
 condition.build_condition()
 
 

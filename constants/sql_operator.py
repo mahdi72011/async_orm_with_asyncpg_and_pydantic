@@ -1,8 +1,8 @@
-from enum import Enum
+from enum import StrEnum
 
 
 
-class SqlOperator(Enum):
+class SqlOperator(StrEnum):
 
     EQL = "="
     GT = ">"
@@ -14,4 +14,4 @@ class SqlOperator(Enum):
     ILIKE = " ILIKE "
     BETWEEN = " BETWEEN "
     IN = " = ANY"
-
+    NOTIN = " <> ALL"
