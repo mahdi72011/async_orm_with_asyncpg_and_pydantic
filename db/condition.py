@@ -8,7 +8,7 @@ class DBCondition:
         self.operator = operator
         self.condition = ""
         self.number = starting_index
-        self.const = (tuple(const),) if isinstance(const, (list, tuple)) else (const,)
+        self.const = (list(const),) if isinstance(const, (list, tuple)) else (const,)
 
     def build_condition(self):
         self.condition = self.term + self.operator + f"(${self.number}) "
