@@ -12,7 +12,7 @@ class QueryBuilder:
         self.alias = alias if alias else table_name[0].lower()
 
 
-    def concatenate_update_expressions(self, update: DBAssignment, condition: DBCondition):
+    def compile_update_clauses(self, update: DBAssignment, condition: DBCondition):
         a = len(condition.const)
         b = len(update.value_list)
         update.update_query = ",".join(update.update_list)
@@ -20,7 +20,7 @@ class QueryBuilder:
         condition_query = condition.condition.format(*range(b+1,b+a+1))
         return update_query, condition_query
 
-    def concatenate_condition_expressions(self, condition: DBCondition):
+    def compile_conditions(self, condition: DBCondition):
         if not condition:
             return None
         a = len(condition.const)
@@ -51,7 +51,7 @@ class QueryBuilder:
     
 
     async def select(self, column: List='*', condition: DBCondition=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, mock: bool=False):
-        condition_query = self.concatenate_condition_expressions(condition)
+        condition_query = self.compile_conditions(condition)
         query = "SELECT {columns} FROM {table} {condition} {group} {order} {asc_or_desc} {limit} {offset}".\
         format(columns=",".join(list(column)) if type(column) == list else "*",
                table=self.table_name,
@@ -68,7 +68,7 @@ class QueryBuilder:
 
     ### returns a record that automatically converts into json by fastapi upon returning with ResponseHandler.
     async def select_one(self, column: list='*', condition: DBCondition=None):
-        condition_query = self.concatenate_condition_expressions(condition)
+        condition_query = self.compile_conditions(condition)
         query = """
         SELECT {columns} FROM {table} {condition} LIMIT 1;
         """.format(
@@ -80,7 +80,7 @@ class QueryBuilder:
 
     
     async def update(self, update: DBAssignment, condition: DBCondition):
-        update_query, condition_query = self.concatenate_update_expressions(update, condition)
+        update_query, condition_query = self.compile_update_clauses(update, condition)
         query = "UPDATE {table} SET {update} WHERE {condition};". \
             format(table=self.table_name,
                    update=update_query,
@@ -88,11 +88,12 @@ class QueryBuilder:
         return await Connection.execute_query(query, *update.value_list, *condition.const)
 
 
-    async def delete(self, condition: str=None, condition_constant: list=None):
+    async def delete(self, condition: DBCondition):
+        condition_query = self.compile_conditions(condition)
         query = "DELETE FROM {table} WHERE {condition} ".\
             format(table=self.table_name,
-            condition= condition)
-        return await Connection.execute_query(query, *condition_constant)
+            condition= condition_query)
+        return await Connection.execute_query(query, *condition.const)
 
 
     async def execute_select_query(self, query: str, *args):
