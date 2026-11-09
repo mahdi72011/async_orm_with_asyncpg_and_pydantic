@@ -8,7 +8,6 @@ class TableDefinition(Protocol):
     __alias__: str
 
 
-
 class Users(StrEnum):
     __table_name__ = "users"
     __alias__ = "u"
