@@ -1,14 +1,16 @@
 from pydantic import BaseModel
-import asyncio
-
-from db.connection import Connection
 from typing import List
 
+from db.connection import Connection
+from db.condition import DBCondition
+from constants.join_types import JoinType
+from models import TableDefinition
 
 
 class QueryBuilder:
-    def __init__(self, table_name):
+    def __init__(self, table_name: str, alias: str=None):
         self.table_name = table_name
+        self.alias = alias if alias else table_name[0].lower()
 
 
     async def insert_row(self, base_model: BaseModel, returning_column: str | None = None):
@@ -90,4 +92,25 @@ class QueryBuilder:
 
     async def execute_batch_query(self, query: str, *args):
         return await Connection.execute_batch_query(query, *args)
+
+
+    async def select_join(self, column: List, join_type: JoinType, join_table: TableDefinition, on: DBCondition, db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
+        query = """
+            SELECT {columns} FROM {table_name} AS {base_alias} {join_type} {join_table_name} AS {join_alias} ON {on} {condition} {group} {order} {asc_or_desc} {limit} {offset}
+            """.format(
+                columns = ",".join(list(column)),
+                table_name = self.table_name,
+                base_alias = self.alias,
+                join_type = join_type,
+                join_table_name = join_table.__table_name__,
+                join_alias = join_table.__alias__,
+                on = on.condition,
+                condition=("WHERE " + db_condition.condition) if db_condition else "",
+                group="GROUP BY " + ",".join(list(group_by)) if group_by else "",
+                order="ORDER BY " + order_by if order_by else "",
+                asc_or_desc=asc_or_desc if asc_or_desc else "",
+                limit = "LIMIT " + str(limit) if limit is not None else "",
+                offset = "OFFSET " + str(offset) if offset is not None else ""
+            )
+        return await Connection.fetch_all(query, *on.const, *db_condition.const)
 

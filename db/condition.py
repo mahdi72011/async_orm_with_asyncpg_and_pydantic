@@ -1,9 +1,15 @@
 from constants.sql_operator import SqlOperator
+from typing import Any
+
+
+class BaseCon:
+    def __init__(self):
+        self.number = 1
 
 
 
 class DBCondition:
-    def __init__(self, term: str=None, operator: SqlOperator=None, const: object=None, starting_index: int=1):
+    def __init__(self, term: str=None, operator: SqlOperator=None, const: Any=None, starting_index: int=1):
         self.term = term
         self.operator = operator
         self.condition = ""
@@ -11,22 +17,36 @@ class DBCondition:
         self.const = (list(const),) if isinstance(const, (list, tuple)) else (const,)
 
     def build_condition(self):
-        self.condition = self.term + self.operator + f"(${self.number}) "
+        self.condition = self.term + self.operator + "(${}) "
         return self.condition
 
     def __and__(self, other):
         other.number += self.number
-        and_condition = DBCondition(const=self.const + other.const)
+        and_condition = DBCondition()
+        and_condition.const=self.const + other.const 
         and_condition.number = other.number
         and_condition.condition = "(" + self.condition + "AND " + other.build_condition() + ") "
         return and_condition
 
     def __or__(self, other):
         other.number += self.number
-        or_condition = DBCondition(const=self.const + other.const)
+        or_condition = DBCondition()
+        or_condition.const=self.const + other.const
         or_condition.number = other.number
         or_condition.condition = "(" + self.condition + "OR " + other.build_condition() + ") "
         return or_condition
+
+
+class JoinCondition:
+    def __init__(self, base_term: str, operator: SqlOperator, join_term: str):
+        self.base_term = base_term
+        self.operator = operator
+        self.join_term = join_term
+
+    def build_join_condition(self):
+        self.condition = self.base_term + self.operator + self.join_term
+        return self.condition
+
 
 class DBAssignment:
     def __init__(self, update_set: dict):
