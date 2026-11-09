@@ -12,6 +12,8 @@ class SqlOperator(StrEnum):
     NOTEQL = "!="
     LIKE = " LIKE "
     ILIKE = " ILIKE "
-    BETWEEN = " BETWEEN "
     IN = " = ANY"
     NOTIN = " <> ALL"
+    BETWEEN = " BETWEEN "
+
+

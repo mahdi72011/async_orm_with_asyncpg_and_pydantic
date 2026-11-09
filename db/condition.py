@@ -33,10 +33,12 @@ class DBAssignment:
         self.update_set = update_set
         self.update_list = []
         self.value_list = []
+        self.index = 1
     def build_assignment(self):
         for i, key_val in enumerate(self.update_set.items()):
             self.update_list.append(key_val[0] + '=' + f"(${i+1})")
             self.value_list.append(key_val[1])
+            self.index += 1
         return self.update_list, self.value_list
 
 
