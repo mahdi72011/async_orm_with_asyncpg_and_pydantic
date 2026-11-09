@@ -17,12 +17,15 @@ c2 = DBCondition(term="phone_number", operator=SqlOperator.EQL, const="sdasd")
 c2.build_condition()
 
 final_condition = c1.__or__(c2)
+
+up = DBAssignment({"username": "hassan", "address": "tehran"})
+up.build_assignment()
 # dao.select_join(join_type=[], columns=[U.user_id, E.identifier], joint_table=E, join_condition="ON ..." , condition=condition, condition_const=condition)
 
 async def main():
     await Connection.creating_pool()
-
-    result = await dao.select(condition=final_condition.condition, condition_constant=final_condition.const, mock=False)
+    await dao.update(update=up, condition=final_condition)
+    result = await dao.select_one(condition=final_condition)
     print(result)
 
 

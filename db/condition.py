@@ -9,30 +9,25 @@ class BaseCon:
 
 
 class DBCondition:
-    def __init__(self, term: str=None, operator: SqlOperator=None, const: Any=None, starting_index: int=1):
+    def __init__(self, term: str=None, operator: SqlOperator=None, const: Any=None):
         self.term = term
         self.operator = operator
         self.condition = ""
-        self.number = starting_index
-        self.const = (list(const),) if isinstance(const, (list, tuple)) else (const,)
+        self.const = () if const is None else (list(const),) if isinstance(const, (list, tuple)) else (const,)
 
     def build_condition(self):
         self.condition = self.term + self.operator + "(${}) "
         return self.condition
 
     def __and__(self, other):
-        other.number += self.number
         and_condition = DBCondition()
         and_condition.const=self.const + other.const 
-        and_condition.number = other.number
         and_condition.condition = "(" + self.condition + "AND " + other.build_condition() + ") "
         return and_condition
 
     def __or__(self, other):
-        other.number += self.number
         or_condition = DBCondition()
         or_condition.const=self.const + other.const
-        or_condition.number = other.number
         or_condition.condition = "(" + self.condition + "OR " + other.build_condition() + ") "
         return or_condition
 
@@ -53,13 +48,12 @@ class DBAssignment:
         self.update_set = update_set
         self.update_list = []
         self.value_list = []
-        self.index = 1
+        self.update_query = ""
     def build_assignment(self):
         for i, key_val in enumerate(self.update_set.items()):
-            self.update_list.append(key_val[0] + '=' + f"(${i+1})")
+            self.update_list.append(key_val[0] + '=' + "(${})")
             self.value_list.append(key_val[1])
-            self.index += 1
-        return self.update_list, self.value_list
+        return self
 
 
 
@@ -102,24 +96,3 @@ class DBAssignment:
 # const=5642
 # const = [].append(const) #if type(const) is not list else [].extend(const)
 # print(const)
-
-
-
-# def update(update: list, update_constant: list, condition: str=None, condition_constant: list=None):
-#     query = "UPDATE {table} SET {update} WHERE {condition};". \
-#         format(table="orders",
-#                 update=",".join(update),
-#                 condition=condition)
-#     return query
-
-# c = DBCondition(term="orderid", operator="=", const=12, starting_index=2)
-# c.build_condition()
-
-# up = DBAssignment({"is_paid": True})
-# up.build_assignment()
-
-# a = update(update=up.update_list, update_constant=up.value_list, condition=c.condition, condition_constant=c.const)
-
-# print(a)
-
-

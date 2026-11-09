@@ -2,16 +2,29 @@ from pydantic import BaseModel
 from typing import List
 
 from db.connection import Connection
-from db.condition import DBCondition
+from db.condition import DBCondition, DBAssignment
 from constants.join_types import JoinType
 from models import TableDefinition
-
 
 class QueryBuilder:
     def __init__(self, table_name: str, alias: str=None):
         self.table_name = table_name
         self.alias = alias if alias else table_name[0].lower()
 
+
+    def concatenate_update_expressions(self, update: DBAssignment, condition: DBCondition):
+        a = len(condition.const)
+        b = len(update.value_list)
+        update.update_query = ",".join(update.update_list)
+        update_query = update.update_query.format(*range(1,b+1))
+        condition_query = condition.condition.format(*range(b+1,b+a+1))
+        return update_query, condition_query
+
+    def concatenate_condition_expressions(self, condition: DBCondition):
+        if not condition:
+            return None
+        a = len(condition.const)
+        return condition.condition.format(*range(1,a+1))
 
     async def insert_row(self, base_model: BaseModel, returning_column: str | None = None):
         query = "INSERT INTO {table} ({columns}) VALUES ({values}) {return_column};".\
@@ -37,11 +50,12 @@ class QueryBuilder:
         return await Connection.execute_batch_query(query, [tuple(data_model.model_dump().values()) for data_model in data_models])
     
 
-    async def select(self, column: List='*', condition: str=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, condition_constant: list=[], mock: bool=False):
+    async def select(self, column: List='*', condition: DBCondition=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, mock: bool=False):
+        condition_query = self.concatenate_condition_expressions(condition)
         query = "SELECT {columns} FROM {table} {condition} {group} {order} {asc_or_desc} {limit} {offset}".\
         format(columns=",".join(list(column)) if type(column) == list else "*",
                table=self.table_name,
-               condition=("WHERE " + condition) if condition else "",
+               condition=("WHERE " + condition_query) if condition_query else "",
                 group="GROUP BY " + ",".join(group) if group else "",
                 order="ORDER BY " + order if order else "",
                 asc_or_desc=asc_or_desc if asc_or_desc else "",
@@ -49,26 +63,29 @@ class QueryBuilder:
                 offset="OFFSET " + str(offset) if offset else "")
         if mock:
             return query
-        return await Connection.fetch_all(query, *condition_constant)
+        return await Connection.fetch_all(query, *condition.const if condition else ())
 
 
     ### returns a record that automatically converts into json by fastapi upon returning with ResponseHandler.
-    async def select_one(self, column: list='*', condition: str=None, condition_constant: list=None):
+    async def select_one(self, column: list='*', condition: DBCondition=None):
+        condition_query = self.concatenate_condition_expressions(condition)
         query = """
         SELECT {columns} FROM {table} {condition} LIMIT 1;
         """.format(
             columns=",".join(column) if isinstance(column, list) else "*",
             table=self.table_name,
-            condition=("WHERE " + condition) if condition else "")
-        return await Connection.fetch_one(query, *(condition_constant or []))
+            condition=("WHERE " + condition_query) if condition_query else "")
+        # breakpoint()
+        return await Connection.fetch_one(query, *condition.const if condition else ())
 
     
-    async def update(self, update: list, update_constant: list, condition: str=None, condition_constant: list=None):
+    async def update(self, update: DBAssignment, condition: DBCondition):
+        update_query, condition_query = self.concatenate_update_expressions(update, condition)
         query = "UPDATE {table} SET {update} WHERE {condition};". \
             format(table=self.table_name,
-                   update=",".join(update),
-                   condition=condition)
-        return await Connection.execute_query(query, *update_constant, *condition_constant)
+                   update=update_query,
+                   condition=condition_query)
+        return await Connection.execute_query(query, *update.value_list, *condition.const)
 
 
     async def delete(self, condition: str=None, condition_constant: list=None):
