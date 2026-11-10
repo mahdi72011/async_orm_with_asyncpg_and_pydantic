@@ -7,7 +7,7 @@ class BaseCon:
         self.number = 1
 
 
-
+### u.user_id = 111
 class DBCondition:
     def __init__(self, term: str=None, operator: SqlOperator=None, const: Any=None):
         self.term = term
@@ -16,7 +16,7 @@ class DBCondition:
         self.const = () if const is None else (list(const),) if isinstance(const, (list, tuple)) else (const,)
 
     def build_condition(self):
-        self.condition = self.term + self.operator + "(${}) "
+        self.condition = self.term + self.operator
         return self.condition
 
     def __and__(self, other):
@@ -32,14 +32,15 @@ class DBCondition:
         return or_condition
 
 
-class JoinCondition:
+### u.enterprise_id = e.id
+class ColumnCondition:
     def __init__(self, base_term: str, operator: SqlOperator, join_term: str):
         self.base_term = base_term
         self.operator = operator
         self.join_term = join_term
 
     def build_join_condition(self):
-        self.condition = self.base_term + self.operator + self.join_term
+        self.condition = self.base_term + self.operator.column_operator + self.join_term
         return self.condition
 
 

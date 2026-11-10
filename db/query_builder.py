@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import List, Literal
 
 from db.connection import Connection
-from db.condition import DBCondition, DBAssignment, JoinCondition
+from db.condition import DBCondition, DBAssignment, ColumnCondition
 from constants.join_types import JoinType
 from models import TableDefinition
 
@@ -11,6 +11,7 @@ class QueryBuilder:
         self.table_name = table_name
         self.alias = alias if alias else table_name[0].lower()
 
+    # TO DO aggregate, select for update, distinct, having.
 
     def compile_update_clauses(self, update: DBAssignment, condition: DBCondition=None):
         b = len(update.value_list)
@@ -153,17 +154,17 @@ class QueryBuilder:
         return await Connection.execute_batch_query(query, *args)
 
 
-    async def select_join(self, column: List, join_type: JoinType, join_table: type[TableDefinition], on: JoinCondition, db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
+    async def select_join(self, column: List[str], join_type: JoinType, join_table: type[TableDefinition], on: ColumnCondition, db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
         condition_query = self.compile_conditions(db_condition)
         query = """
-            SELECT {columns} FROM {table_name} AS {base_alias} {join_type} {join_table_name} AS {join_alias} ON {on} {condition} {group} {order} {asc_or_desc} {limit} {offset}
+            SELECT {columns} FROM {table_name} {join_type} {join_table_name} ON {on} {condition} {group} {order} {asc_or_desc} {limit} {offset}
             """.format(
                 columns = ",".join(list(column)),
                 table_name = self.table_name,
-                base_alias = self.alias,
+                # base_alias = self.alias,
                 join_type = join_type,
                 join_table_name = join_table.__table_name__,
-                join_alias = join_table.__alias__,
+                # join_alias = join_table.__alias__,
                 on = on.condition,
                 condition=("WHERE " + condition_query) if condition_query else "",
                 group="GROUP BY " + ",".join(list(group_by)) if group_by else "",
@@ -172,5 +173,8 @@ class QueryBuilder:
                 limit = "LIMIT " + str(limit) if limit is not None else "",
                 offset = "OFFSET " + str(offset) if offset is not None else ""
             )
+        print(query)
         return await Connection.fetch_all(query, *db_condition.const if db_condition else ())
 
+
+    # async def select_multi_join(self, column: List[str], joins: List[Literal[JoinType, ]])

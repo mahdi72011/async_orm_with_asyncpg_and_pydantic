@@ -28,8 +28,8 @@ class Enterprise(StrEnum):
     __table_name__ = "enterprise"
     __alias__ = "e"
 
-    id         = "e.id"
-    name       = "e.name"
-    address    = "e.address"
-    identifier = "e.identifier"
-    updated_at = "e.updated_at"
+    id         = "enterprise.id"
+    name       = "enterprise.name"
+    address    = "enterprise.address"
+    identifier = "enterprise.identifier"
+    updated_at = "enterprise.updated_at"
