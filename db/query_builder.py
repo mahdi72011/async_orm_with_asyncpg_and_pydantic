@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import List
 
 from db.connection import Connection
-from db.condition import DBCondition, DBAssignment
+from db.condition import DBCondition, DBAssignment, JoinCondition
 from constants.join_types import JoinType
 from models import TableDefinition
 
@@ -112,7 +112,7 @@ class QueryBuilder:
         return await Connection.execute_batch_query(query, *args)
 
 
-    async def select_join(self, column: List, join_type: JoinType, join_table: TableDefinition, on: DBCondition, db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
+    async def select_join(self, column: List, join_type: JoinType, join_table: type[TableDefinition], on: JoinCondition, db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
         condition_query = self.compile_conditions(db_condition)
         query = """
             SELECT {columns} FROM {table_name} AS {base_alias} {join_type} {join_table_name} AS {join_alias} ON {on} {condition} {group} {order} {asc_or_desc} {limit} {offset}
@@ -127,9 +127,9 @@ class QueryBuilder:
                 condition=("WHERE " + condition_query) if condition_query else "",
                 group="GROUP BY " + ",".join(list(group_by)) if group_by else "",
                 order="ORDER BY " + order_by if order_by else "",
-                asc_or_desc=asc_or_desc if asc_or_desc else "",
+                asc_or_desc=asc_or_desc if asc_or_desc and order_by else "",
                 limit = "LIMIT " + str(limit) if limit is not None else "",
                 offset = "OFFSET " + str(offset) if offset is not None else ""
             )
-        return await Connection.fetch_all(query, *db_condition.const)
+        return await Connection.fetch_all(query, *db_condition.const if db_condition else ())
 
