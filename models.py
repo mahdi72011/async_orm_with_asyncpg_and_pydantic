@@ -12,16 +12,16 @@ class Users(StrEnum):
     __table_name__ = "users"
     __alias__ = "u"
 
-    user_id        = "u.user_id"
-    username       = "u.username"
-    phone_number   = "u.phone_number"
-    address        = "u.address"
-    is_blacklisted = "u.is_blacklisted"
-    created_at     = "u.created_at"
-    updated_at     = "u.updated_at"
-    family_name    = "u.family_name"
-    first_name     = "u.first_name"
-    enterprise_id  = "u.enterprise_id"
+    user_id        = "users.user_id"
+    username       = "users.username"
+    phone_number   = "users.phone_number"
+    address        = "users.address"
+    is_blacklisted = "users.is_blacklisted"
+    created_at     = "users.created_at"
+    updated_at     = "users.updated_at"
+    family_name    = "users.family_name"
+    first_name     = "users.first_name"
+    enterprise_id  = "users.enterprise_id"
 
 
 class Enterprise(StrEnum):

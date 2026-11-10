@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Literal
 
 from db.connection import Connection
 from db.condition import DBCondition, DBAssignment, JoinCondition
@@ -12,12 +12,14 @@ class QueryBuilder:
         self.alias = alias if alias else table_name[0].lower()
 
 
-    def compile_update_clauses(self, update: DBAssignment, condition: DBCondition):
-        a = len(condition.const)
+    def compile_update_clauses(self, update: DBAssignment, condition: DBCondition=None):
         b = len(update.value_list)
         update.update_query = ",".join(update.update_list)
         update_query = update.update_query.format(*range(1,b+1))
-        condition_query = condition.condition.format(*range(b+1,b+a+1))
+        condition_query = None
+        if condition:
+            a = len(condition.const)
+            condition_query = condition.condition.format(*range(b+1,b+a+1))
         return update_query, condition_query
 
     def compile_conditions(self, condition: DBCondition):
@@ -26,12 +28,13 @@ class QueryBuilder:
         a = len(condition.const)
         return condition.condition.format(*range(1,a+1))
 
-    async def insert_row(self, base_model: BaseModel, returning_column: str | None = None):
+
+    async def insert_row(self, base_model: BaseModel, returning_column: List[str] | None = None):
         query = "INSERT INTO {table} ({columns}) VALUES ({values}) {return_column};".\
         format(table=self.table_name,
                columns = ",".join(list(base_model.model_dump().keys())),
                values = ",".join([f"(${n + 1})" for n in range(len(base_model.model_dump().values()))]),
-               return_column = ("RETURNING " + returning_column) if returning_column else "")
+               return_column = ("RETURNING " + ",".join(returning_column)) if returning_column else "")
         print(query)
         if returning_column:
             return await Connection.fetch_one(query, *base_model.model_dump().values())
@@ -46,9 +49,39 @@ class QueryBuilder:
                values = ",".join([f"(${n + 1})" for n in range(len(base_model.model_fields.keys()))]),
         )
         print(query)
-        # breakpoint()
         return await Connection.execute_batch_query(query, [tuple(data_model.model_dump().values()) for data_model in data_models])
-    
+
+
+    async def upsert_row(self, base_model: BaseModel, conflict: str, action: Literal["UPDATE","NOTHING"]="NOTHING", update: DBAssignment=None, condition: DBCondition=None, returning_column: List[str] | None = None):
+        if action == "UPDATE" and update is None:
+            raise ValueError("UPDATE action requires an update assignment")
+        if action == "UPDATE":
+            action_query, starting_index = self.make_update_query(update, condition)
+        else:
+            action_query = None
+            starting_index = 1
+        data = base_model.model_dump()
+        query = "INSERT INTO {table} ({columns}) VALUES ({values}) ON CONFLICT ({conflict}) DO {do} {action} {return_column};".\
+        format(table=self.table_name,
+               columns = ",".join(list(data.keys())),
+               values = ",".join([f"(${starting_index + n})" for n in range(len(data.values()))]),
+               conflict = conflict,
+               do = action,
+               action = action_query if action_query else "",
+               return_column = "RETURNING " + ",".join(returning_column) if returning_column and action else "")
+        print(query)
+
+        up_params = ()
+        c_params = ()
+        if action == "UPDATE":
+            up_params = tuple(update.value_list) if update else ()
+            c_params = tuple(condition.const) if condition else ()
+        if returning_column:
+            return await Connection.fetch_one(query, *up_params, *c_params, *data.values())
+
+        return await Connection.execute_query(query, *up_params, *c_params, *data.values())
+
+
 
     async def select(self, column: List='*', condition: DBCondition=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, mock: bool=False):
         condition_query = self.compile_conditions(condition)
@@ -86,6 +119,14 @@ class QueryBuilder:
                    update=update_query,
                    condition=condition_query)
         return await Connection.execute_query(query, *update.value_list, *condition.const)
+
+    def make_update_query(self, update: DBAssignment, condition: DBCondition=None):
+        update_query, condition_query = self.compile_update_clauses(update, condition)
+        query = "SET {update} {condition}". \
+            format(update=update_query,
+                   condition="WHERE " + condition_query if condition_query else "")
+        n = (len(condition.const) if condition else 0) + len(update.value_list) +1
+        return query, n
 
 
     async def delete(self, condition: DBCondition):
