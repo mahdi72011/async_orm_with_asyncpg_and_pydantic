@@ -2,8 +2,9 @@ import asyncio
 
 from db.connection import Connection
 from db.query_builder import QueryBuilder
-from db.condition import DBCondition, DBAssignment
+from db.condition import DBCondition, DBAssignment, JoinCondition
 from constants.sql_operator import SqlOperator
+from constants.join_types import JoinType
 from models import Users as U, Enterprise as E
 
 
@@ -16,16 +17,21 @@ c1.build_condition()
 c2 = DBCondition(term="phone_number", operator=SqlOperator.EQL, const="sdasd")
 c2.build_condition()
 
-final_condition = c1.__or__(c2)
+final_condition = c1 | c2
 
-up = DBAssignment({"username": "hassan", "address": "tehran"})
-up.build_assignment()
-# dao.select_join(join_type=[], columns=[U.user_id, E.identifier], joint_table=E, join_condition="ON ..." , condition=condition, condition_const=condition)
+on = JoinCondition(base_term=U.enterprise_id, operator=SqlOperator.EQL, join_term=E.id)
+on.build_join_condition()
+
+# up = DBAssignment({"username": "hassan", "address": "tehran"})
+# up.build_assignment()
+
+
+
 
 async def main():
     await Connection.creating_pool()
-    await dao.update(update=up, condition=final_condition)
-    result = await dao.select_one(condition=final_condition)
+    result = await dao.select_join(column=[U.user_id, E.identifier],join_type=JoinType.LEFT, join_table=E, on=on, db_condition=final_condition)
+    # result = await dao.select_one(condition=final_condition)
     print(result)
 
 
