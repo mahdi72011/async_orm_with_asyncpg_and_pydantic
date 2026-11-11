@@ -1,5 +1,7 @@
-from constants.sql_operator import SqlOperator
+from __future__ import annotations
 from typing import Any
+
+from constants.sql_operator import SqlOperator
 
 
 class BaseCon:
@@ -16,6 +18,8 @@ class DBCondition:
         self.const = () if const is None else (list(const),) if isinstance(const, (list, tuple)) else (const,)
 
     def build_condition(self):
+        if self.term is None:
+            return self.condition
         self.condition = self.term + self.operator
         return self.condition
 
@@ -34,14 +38,29 @@ class DBCondition:
 
 ### u.enterprise_id = e.id
 class ColumnCondition:
-    def __init__(self, base_term: str, operator: SqlOperator, join_term: str):
+    def __init__(self, base_term: str=None, operator: SqlOperator=None, join_term: str=None):
+        self.condition = ""
         self.base_term = base_term
         self.operator = operator
         self.join_term = join_term
 
-    def build_join_condition(self):
+    def build_condition(self):
+        if self.base_term is None:
+            return self.condition
         self.condition = self.base_term + self.operator.column_operator + self.join_term
         return self.condition
+
+    def __and__(self, other: ColumnCondition):
+        and_condition = ColumnCondition()
+        and_condition.condition = "(" + self.condition + " AND " + other.condition + ") "
+        return and_condition
+
+    def __or__(self, other: ColumnCondition):
+        and_condition = ColumnCondition()
+        and_condition.condition = "(" + self.condition + " OR " + other.condition + ") "
+        return and_condition
+
+
 
 
 class DBAssignment:

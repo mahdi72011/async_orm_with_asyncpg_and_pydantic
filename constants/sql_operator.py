@@ -21,12 +21,12 @@ class SqlOperator(StrEnum):
     @property
     def column_operator(self):
         operators = {
-            SqlOperator.EQL: "=",
-            SqlOperator.NOTEQL: "!=",
-            SqlOperator.GT: ">",
-            SqlOperator.GTE: ">=",
-            SqlOperator.LT: "<",
-            SqlOperator.LTE: "<=",
+            SqlOperator.EQL: " = ",
+            SqlOperator.NOTEQL: " != ",
+            SqlOperator.GT: " > ",
+            SqlOperator.GTE: " >= ",
+            SqlOperator.LT: " < ",
+            SqlOperator.LTE: " <= ",
         }
         if self not in operators:
             raise ValueError(f"{self.name} cannot be used for column comparison")

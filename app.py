@@ -27,7 +27,7 @@ final_condition = c1 | c2
 # on = DBCondition(term=U.enterprise_id, operator=SqlOperator.EQL, const=E.id)
 # on.build_condition()
 on = ColumnCondition(base_term=U.enterprise_id, operator=SqlOperator.EQL, join_term=E.id)
-on.build_join_condition()
+on.build_condition()
 
 up = DBAssignment({"username": "hasssan", "address": "tehran"})
 up.build_assignment()
