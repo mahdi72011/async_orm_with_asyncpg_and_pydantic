@@ -23,12 +23,27 @@ class QueryBuilder:
             condition_query = condition.condition.format(*range(b+1,b+a+1))
         return update_query, condition_query
 
-    def compile_conditions(self, condition: DBCondition):
+    def compile_conditions(self, condition: DBCondition, n: int=1):
         if not condition:
             return None
         a = len(condition.const)
-        return condition.condition.format(*range(1,a+1))
+        breakpoint()
+        return condition.condition.format(*range(n,n+a+1))
 
+    def compile_on_condition(self, on: ColumnCondition, condition: DBCondition=None):
+        if not on:
+            raise ValueError("select join query must have a join condition")
+        on_query = on.condition
+        a = 1
+        if getattr(on, "const", None):
+            a = len(on.const) + 1
+            on_query = on.condition.format(*range(1, a))
+        condition_query = None
+        b = 0
+        if condition:
+            b = len(condition.const)
+            condition_query = condition.condition.format(*range(a,a+b))
+        return on_query, condition_query
 
     async def insert_row(self, base_model: BaseModel, returning_column: List[str] | None = None):
         query = "INSERT INTO {table} ({columns}) VALUES ({values}) {return_column};".\
@@ -155,7 +170,7 @@ class QueryBuilder:
 
 
     async def select_join(self, column: List[str], join_type: JoinType, join_table: type[TableDefinition], on: ColumnCondition, db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
-        condition_query = self.compile_conditions(db_condition)
+        on_query, condition_query = self.compile_on_condition(on, db_condition)
         query = """
             SELECT {columns} FROM {table_name} {join_type} {join_table_name} ON {on} {condition} {group} {order} {asc_or_desc} {limit} {offset}
             """.format(
@@ -165,7 +180,7 @@ class QueryBuilder:
                 join_type = join_type,
                 join_table_name = join_table.__table_name__,
                 # join_alias = join_table.__alias__,
-                on = on.condition,
+                on = on_query,
                 condition=("WHERE " + condition_query) if condition_query else "",
                 group="GROUP BY " + ",".join(list(group_by)) if group_by else "",
                 order="ORDER BY " + order_by if order_by else "",
@@ -174,7 +189,7 @@ class QueryBuilder:
                 offset = "OFFSET " + str(offset) if offset is not None else ""
             )
         print(query)
-        return await Connection.fetch_all(query, *db_condition.const if db_condition else ())
+        return await Connection.fetch_all(query, *on.const if getattr(on, "const", None) else (), *db_condition.const if db_condition else ())
 
 
     # async def select_multi_join(self, column: List[str], joins: List[Literal[JoinType, ]])

@@ -29,13 +29,15 @@ final_condition = c1 | c2
 on = ColumnCondition(base_term=U.enterprise_id, operator=SqlOperator.EQL, join_term=E.id)
 on.build_condition()
 
-up = DBAssignment({"username": "hasssan", "address": "tehran"})
-up.build_assignment()
+final_on = c1 | on | c2
 
+# up = DBAssignment({"username": "hasssan", "address": "tehran"})
+# up.build_assignment()
 user = Users(phone_number="09111000000", username="mahdi")
+
 async def main():
     await Connection.creating_pool()
-    result = await dao.select_join(column=[U.user_id, E.identifier],join_type=JoinType.LEFT, join_table=E, on=on, db_condition=final_condition)
+    result = await dao.select_join(column=[U.user_id, E.identifier],join_type=JoinType.LEFT, join_table=E, on=final_on, db_condition=final_condition)
     # result = await dao.select_one(condition=final_condition)
     # result = await dao.upsert_row(base_model=user, conflict="phone_number", action="UPDATE", update=up, condition=c2, returning_column=[U.user_id])
     print(result)

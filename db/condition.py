@@ -23,17 +23,30 @@ class DBCondition:
         self.condition = self.term + self.operator
         return self.condition
 
-    def __and__(self, other):
-        and_condition = DBCondition()
-        and_condition.const=self.const + other.const 
-        and_condition.condition = "(" + self.condition + "AND " + other.build_condition() + ") "
+    def __and__(self, other: DBCondition | ColumnCondition):
+        if isinstance(other, DBCondition):
+            and_condition = DBCondition()
+            and_condition.const=self.const + other.const 
+            and_condition.condition = "(" + self.condition + " AND " + other.build_condition() + ") "
+            return and_condition
+
+        and_condition = ColumnCondition()
+        and_condition.const = getattr(self, "const", ()) + getattr(other, "const", ())
+        and_condition.condition = "(" + self.condition + " AND " + other.condition + ") "
         return and_condition
 
-    def __or__(self, other):
-        or_condition = DBCondition()
-        or_condition.const=self.const + other.const
-        or_condition.condition = "(" + self.condition + "OR " + other.build_condition() + ") "
+    def __or__(self, other: DBCondition | ColumnCondition):
+        if isinstance(other, DBCondition):
+            or_condition = DBCondition()
+            or_condition.const=self.const + other.const
+            or_condition.condition = "(" + self.condition + " OR " + other.build_condition() + ") "
+            return or_condition
+
+        or_condition = ColumnCondition()
+        or_condition.const = getattr(self, "const", ()) + getattr(other, "const", ())
+        or_condition.condition = "(" + self.condition + " OR " + other.condition + ") "
         return or_condition
+
 
 
 ### u.enterprise_id = e.id
@@ -50,16 +63,30 @@ class ColumnCondition:
         self.condition = self.base_term + self.operator.column_operator + self.join_term
         return self.condition
 
-    def __and__(self, other: ColumnCondition):
-        and_condition = ColumnCondition()
-        and_condition.condition = "(" + self.condition + " AND " + other.condition + ") "
+    def __and__(self, other: ColumnCondition | DBCondition):
+        if isinstance(other, ColumnCondition):
+            and_condition = ColumnCondition()
+            and_condition.const = getattr(self, "const", ()) + getattr(other, "const", ())
+            and_condition.condition = "(" + self.condition + " AND " + other.condition + ") "
+            return and_condition
+
+        and_condition = DBCondition()
+        and_condition.const = getattr(self, "const", ()) + getattr(other, "const", ())
+        and_condition.condition = "(" + self.condition + " AND " + other.build_condition() + ") "
         return and_condition
 
-    def __or__(self, other: ColumnCondition):
-        and_condition = ColumnCondition()
-        and_condition.condition = "(" + self.condition + " OR " + other.condition + ") "
-        return and_condition
 
+    def __or__(self, other: ColumnCondition | DBCondition):
+        if isinstance(other, ColumnCondition):
+            or_condition = ColumnCondition()
+            or_condition.const = getattr(self, "const", ()) + getattr(other, "const", ())
+            or_condition.condition = "(" + self.condition + " OR " + other.condition + ") "
+            return or_condition
+
+        or_condition = DBCondition()
+        or_condition.const = getattr(self, "const", ()) + getattr(other, "const", ())
+        or_condition.condition = "(" + self.condition + " OR " + other.build_condition() + ") "
+        return or_condition
 
 
 
