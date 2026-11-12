@@ -4,10 +4,6 @@ from typing import Any
 from constants.sql_operator import SqlOperator
 
 
-class BaseCon:
-    def __init__(self):
-        self.number = 1
-
 
 ### u.user_id = 111
 class DBCondition:
