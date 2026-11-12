@@ -17,6 +17,9 @@ class SqlOperator(StrEnum):
     BETWEEN = " BETWEEN " + "(${}) " "AND " + "(${}) "
     NULL = " IS NULL "
     NOTNULL = " IS NOT NULL "
+    LOWER_EQL = " = lower(${}) "
+    IS_DISTINCT_FROM = " IS DISTINCT FROM " + "(${}) "
+
 
     @property
     def column_operator(self):

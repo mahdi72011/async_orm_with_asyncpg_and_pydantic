@@ -22,6 +22,7 @@ class Users(StrEnum):
     family_name    = "users.family_name"
     first_name     = "users.first_name"
     enterprise_id  = "users.enterprise_id"
+    enterprise_role = "users.enterprise_role"
 
 
 class Enterprise(StrEnum):
@@ -33,3 +34,24 @@ class Enterprise(StrEnum):
     address    = "enterprise.address"
     identifier = "enterprise.identifier"
     updated_at = "enterprise.updated_at"
+
+
+class Orders(StrEnum):
+    __table_name__ = "orders"
+    __alias__ = "o"
+
+    order_id              = "orders.order_id"
+    user_id               = "orders.user_id"
+    source_channel        = "orders.source_channel"
+    source_channel_id     = "orders.source_channel_id"
+    delivery_address      = "orders.delivery_address"
+    scheduled_delivery_at = "orders.scheduled_delivery_at"
+    order_status          = "orders.order_status"
+    payment_status        = "orders.payment_status"
+    created_at            = "orders.created_at"
+    updated_at            = "orders.updated_at"
+    enterprise            = "orders.enterprise"
+    user_query            = "orders.user_query"
+    version               = "orders.version"
+    admin_id              = "orders.admin_id"
+    enterprise_id         = "orders.enterprise_id"

@@ -27,7 +27,6 @@ class QueryBuilder:
         if not condition:
             return None
         a = len(condition.const)
-        breakpoint()
         return condition.condition.format(*range(n,n+a+1))
 
     def compile_on_condition(self, on: ColumnCondition, condition: DBCondition=None):
@@ -101,7 +100,7 @@ class QueryBuilder:
 
     async def select(self, column: List='*', condition: DBCondition=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, mock: bool=False):
         condition_query = self.compile_conditions(condition)
-        query = "SELECT {columns} FROM {table} {condition} {group} {order} {asc_or_desc} {limit} {offset}".\
+        query = "SELECT {columns} FROM {table} {condition} {group} {order} {asc_or_desc} {limit} {offset} ;".\
         format(columns=",".join(list(column)) if type(column) == list else "*",
                table=self.table_name,
                condition=("WHERE " + condition_query) if condition_query else "",
@@ -112,6 +111,8 @@ class QueryBuilder:
                 offset="OFFSET " + str(offset) if offset else "")
         if mock:
             return query
+        print(query)
+        print(1111111111111111111111111111)
         return await Connection.fetch_all(query, *condition.const if condition else ())
 
 
