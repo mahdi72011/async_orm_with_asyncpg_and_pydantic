@@ -5,7 +5,7 @@ from db.query_builder import QueryBuilder
 from db.condition import DBCondition, DBAssignment, ColumnCondition
 from constants.sql_operator import SqlOperator
 from constants.join_types import JoinType
-from models import Users as U, Enterprise as E
+from tables import Users as U, Enterprise as E
 
 
 class Users(BaseModel):

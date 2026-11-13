@@ -4,7 +4,7 @@ from typing import List, Literal
 from db.connection import Connection
 from db.condition import DBCondition, DBAssignment, ColumnCondition
 from constants.join_types import JoinType
-from models import TableDefinition
+from tables import TableDefinition
 
 class QueryBuilder:
     def __init__(self, table_name: str, alias: str=None):
@@ -23,11 +23,12 @@ class QueryBuilder:
             condition_query = condition.condition.format(*range(b+1,b+a+1))
         return update_query, condition_query
 
-    def compile_conditions(self, condition: DBCondition, n: int=1):
+    def compile_conditions(self, condition: DBCondition):
         if not condition:
             return None
-        a = len(condition.const)
-        return condition.condition.format(*range(n,n+a+1))
+        condition.build_condition()
+        a = len(condition.const) + 1
+        return condition.condition.format(*range(1,a))
 
     def compile_on_condition(self, on: ColumnCondition, condition: DBCondition=None):
         if not on:
@@ -98,21 +99,19 @@ class QueryBuilder:
 
 
 
-    async def select(self, column: List='*', condition: DBCondition=None, group: list=None, order: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, mock: bool=False):
+    async def select(self, column: List='*', condition: DBCondition=None, group_by: list=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None, mock: bool=False):
         condition_query = self.compile_conditions(condition)
         query = "SELECT {columns} FROM {table} {condition} {group} {order} {asc_or_desc} {limit} {offset} ;".\
         format(columns=",".join(list(column)) if type(column) == list else "*",
                table=self.table_name,
                condition=("WHERE " + condition_query) if condition_query else "",
-                group="GROUP BY " + ",".join(group) if group else "",
-                order="ORDER BY " + order if order else "",
+                group="GROUP BY " + ",".join(group_by) if group_by else "",
+                order="ORDER BY " + order_by if order_by else "",
                 asc_or_desc=asc_or_desc if asc_or_desc else "",
                 limit="LIMIT " + str(limit) if limit else "",
                 offset="OFFSET " + str(offset) if offset else "")
         if mock:
             return query
-        print(query)
-        print(1111111111111111111111111111)
         return await Connection.fetch_all(query, *condition.const if condition else ())
 
 

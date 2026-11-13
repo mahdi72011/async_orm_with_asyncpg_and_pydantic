@@ -1,5 +1,5 @@
 from enum import StrEnum
-from models import TableDefinition
+from tables import TableDefinition
 from db.condition import ColumnCondition
 
 
