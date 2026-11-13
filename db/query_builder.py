@@ -33,6 +33,7 @@ class QueryBuilder:
     def compile_on_condition(self, on: ColumnCondition, condition: DBCondition=None):
         if not on:
             raise ValueError("select join query must have a join condition")
+        on.build_condition()
         on_query = on.condition
         a = 1
         if getattr(on, "const", None):
@@ -41,6 +42,7 @@ class QueryBuilder:
         condition_query = None
         b = 0
         if condition:
+            condition.build_condition()
             b = len(condition.const)
             condition_query = condition.condition.format(*range(a,a+b))
         return on_query, condition_query
@@ -188,7 +190,7 @@ class QueryBuilder:
                 limit = "LIMIT " + str(limit) if limit is not None else "",
                 offset = "OFFSET " + str(offset) if offset is not None else ""
             )
-        print(query)
+
         return await Connection.fetch_all(query, *on.const if getattr(on, "const", None) else (), *db_condition.const if db_condition else ())
 
 
