@@ -9,7 +9,7 @@ from tables import Actor, Address, Category, City, Country, Customer, Film, Film
 
 
 @pytest.mark.asyncio
-async def test_select_join_actor11():
+async def test_select_join_actor():
     await Connection.creating_pool()
     dao = QueryBuilder("actor")
 
@@ -50,7 +50,7 @@ async def test_select_join_actor11():
 
 
 @pytest.mark.asyncio
-async def test_select_join_actor2():
+async def test_select_join_flim_actor():
     await Connection.creating_pool()
     dao = QueryBuilder("actor")
 
@@ -421,43 +421,3 @@ async def test_select_join_payment_customer():
         dict(row) for row in expected
     ]
 
-
-@pytest.mark.asyncio
-async def test_select_join_actor():
-    await Connection.creating_pool()
-    dao = QueryBuilder("actor")
-
-    query = """
-        SELECT actor.actor_id, film_actor.film_id
-        FROM actor
-        LEFT JOIN film_actor
-            ON (actor.actor_id = film_actor.actor_id AND film_actor.film_id > $1)
-        WHERE actor.actor_id > $2
-        ORDER BY actor.actor_id ASC
-        LIMIT 10;
-    """
-
-    expected = await dao.execute_select_query(query, 100, 5)
-
-    c1 = ColumnCondition(base_term=Actor.actor_id, operator=SqlOperator.EQL, join_term=FilmActor.actor_id)
-    c2 = DBCondition(term=FilmActor.film_id, operator=SqlOperator.GT, const=100)
-
-    on = c1 & c2
-
-    condition = DBCondition(term=Actor.actor_id, operator=SqlOperator.GT, const=5)
-
-    actual = await dao.select_join(
-        column=[Actor.actor_id, FilmActor.film_id],
-        join_type=JoinType.LEFT,
-        join_table=FilmActor,
-        on=on,
-        db_condition=condition,
-        order_by=Actor.actor_id,
-        asc_or_desc="ASC",
-        limit=10
-    )
-    print(11111111111111111, flush=True)
-    assert expected
-    assert [dict(row) for row in actual] == [
-        dict(row) for row in expected
-    ]
