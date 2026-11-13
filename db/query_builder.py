@@ -3,7 +3,7 @@ from typing import List, Literal
 
 from db.connection import Connection
 from db.condition import DBCondition, DBAssignment, ColumnCondition
-from constants.join_types import JoinType
+from constants.join_types import JoinType, JoinOn
 from tables import TableDefinition
 
 class QueryBuilder:
@@ -23,14 +23,14 @@ class QueryBuilder:
             condition_query = condition.condition.format(*range(b+1,b+a+1))
         return update_query, condition_query
 
-    def compile_conditions(self, condition: DBCondition):
+    def compile_conditions(self, condition: DBCondition, a: int=1):
         if not condition:
             return None
         condition.build_condition()
-        a = len(condition.const) + 1
-        return condition.condition.format(*range(1,a))
+        b = len(condition.const) + a
+        return condition.condition.format(*range(a,b))
 
-    def compile_on_condition(self, on: ColumnCondition, condition: DBCondition=None):
+    def compile_on_db_condition(self, on: ColumnCondition, condition: DBCondition=None):
         if not on:
             raise ValueError("select join query must have a join condition")
         on.build_condition()
@@ -46,6 +46,19 @@ class QueryBuilder:
             b = len(condition.const)
             condition_query = condition.condition.format(*range(a,a+b))
         return on_query, condition_query
+
+    def compile_on_condition(self, on: ColumnCondition, a: int=1):
+        if not on:
+            raise ValueError("select join query must have a join condition")
+        on.build_condition()
+        on_query = on.condition
+
+        b = a
+        if getattr(on, "const", None):
+            b = len(on.const) + 1
+            on_query = on.condition.format(*range(a, b))
+        return on_query, b
+
 
     async def insert_row(self, base_model: BaseModel, returning_column: List[str] | None = None):
         query = "INSERT INTO {table} ({columns}) VALUES ({values}) {return_column};".\
@@ -172,16 +185,14 @@ class QueryBuilder:
 
 
     async def select_join(self, column: List[str], join_type: JoinType, join_table: type[TableDefinition], on: ColumnCondition, db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
-        on_query, condition_query = self.compile_on_condition(on, db_condition)
+        on_query, condition_query = self.compile_on_db_condition(on, db_condition)
         query = """
             SELECT {columns} FROM {table_name} {join_type} {join_table_name} ON {on} {condition} {group} {order} {asc_or_desc} {limit} {offset}
             """.format(
                 columns = ",".join(list(column)),
                 table_name = self.table_name,
-                # base_alias = self.alias,
                 join_type = join_type,
                 join_table_name = join_table.__table_name__,
-                # join_alias = join_table.__alias__,
                 on = on_query,
                 condition=("WHERE " + condition_query) if condition_query else "",
                 group="GROUP BY " + ",".join(list(group_by)) if group_by else "",
@@ -194,4 +205,49 @@ class QueryBuilder:
         return await Connection.fetch_all(query, *on.const if getattr(on, "const", None) else (), *db_condition.const if db_condition else ())
 
 
-    # async def select_multi_join(self, column: List[str], joins: List[Literal[JoinType, ]])
+    def _param(self, const):
+        if isinstance(const, (list, tuple)):
+            if len(const) == 1:
+                return const[0]
+            if len(const) == 0:
+                return None
+        return const
+
+    async def select_multi_join(self, column: List[str], join_on_list: List[JoinOn], db_condition: DBCondition=None, group_by: List=None, order_by: str=None, asc_or_desc: str=None, limit: int=None, offset: int=None):
+        join_query = ""
+        n = 1
+        for join_on in join_on_list:
+            on_query, n = self.compile_on_condition(join_on.on, n)
+            join_query = join_query + join_on.join_type + " " + join_on.join_table + " ON " + on_query + " "
+
+        condition_query = self.compile_conditions(db_condition, n)
+
+        query = """
+            SELECT {columns} FROM {table_name} {join_query} {condition} {group} {order} {asc_or_desc} {limit} {offset}
+            """.format(
+                columns = ",".join(list(column)),
+                table_name = self.table_name,
+                join_query = join_query,
+                condition=("WHERE " + condition_query) if condition_query else "",
+                group="GROUP BY " + ",".join(list(group_by)) if group_by else "",
+                order="ORDER BY " + order_by if order_by else "",
+                asc_or_desc=asc_or_desc if asc_or_desc and order_by else "",
+                limit = "LIMIT " + str(limit) if limit is not None else "",
+                offset = "OFFSET " + str(offset) if offset is not None else ""
+            )
+        # params = tuple(getattr(join_on.on, "const", []) for join_on in join_on_list)
+        # params = tuple(value for join_on in join_on_list for value in getattr(join_on.on, "const", ()))
+        # lst = []
+        # params= tuple(lst.append(list(getattr(join_on.on, "const", []))) for join_on in join_on_list)
+        # params = tuple(lst)
+        # print(params)
+        # cd = join_on_list[0].on
+        # lst = list(getattr(cd, "const", []))
+        # t = tuple([].append(lst))
+        # breakpoint()
+        params = tuple(
+        p for p in (self._param(getattr(j.on, "const", [])) for j in join_on_list)
+        if p is not None
+        )
+
+        return await Connection.fetch_all(query, *params if params is not None else (), *db_condition.const if db_condition else ())
